@@ -1,0 +1,9 @@
+
+
+git --version
+
+git init
+git add .  //הוסף את כל הקבצים ל־Git
+git commit -m "Initial commit" // בצע Commit ראשון
+
+
