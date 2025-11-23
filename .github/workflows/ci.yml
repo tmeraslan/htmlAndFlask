@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tests-and-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      # 🔹 Lint – בודק סגנון קוד
+      # - name: Run flake8
+      #   run: |
+      #     flake8 app.py tests
+
+      # 🔹 Unit tests בלבד (בלי integration)
+      - name: Run unit tests (exclude integration)
+        run: |
+          pytest -m "not integration"
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: tests-and-lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (for pytest + requests)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install requests
+
+      # 🔹 בונים image מקומי לצורך בדיקות אינטגרציה
+      - name: Build Docker image for tests
+        run: |
+          docker build -t bmi-app:test .
+
+      # 🔹 מרימים קונטיינר ברקע
+      - name: Run container
+        run: |
+          docker run -d -p 5000:5000 --name bmi-app-test bmi-app:test
+
+      # 🔹 מחכים שהשרת יהיה חי
+      - name: Wait for app to be ready
+        run: |
+          for i in {1..10}; do
+            echo "Checking http://localhost:5000/status (try $i)..."
+            if curl -sSf http://localhost:5000/status > /dev/null; then
+              echo "App is up!"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready in time" >&2
+          exit 1
+
+      # 🔹 מריצים integration tests נגד הקונטיינר
+      - name: Run integration tests
+        env:
+          BASE_URL: "http://localhost:5000"
+        run: |
+          pytest -m "integration"
+
+      # 🔹 תמיד עוצרים ומוחקים את הקונטיינר בסוף
+      - name: Stop and remove container
+        if: always()
+        run: |
+          docker stop bmi-app-test || true
+          docker rm bmi-app-test || true
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [tests-and-lint, integration-tests]
+
+    # רק על push ל-main (לא על PR)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/bmi-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE_NAME:${{ github.sha }} -t $IMAGE_NAME:latest .
+
+      - name: Push Docker image (SHA tag)
+        run: |
+          docker push $IMAGE_NAME:${{ github.sha }}
+
+      - name: Push Docker image (latest tag)
+        run: |
+          docker push $IMAGE_NAME:latest
