@@ -6,4 +6,15 @@ git init
 git add .  //הוסף את כל הקבצים ל־Git
 git commit -m "Initial commit" // בצע Commit ראשון
 
+git remote add origin https://github.com/USERNAME/REPO.git
+
+git push -u origin main
+
+
+//create a new branch
+
+git checkout main
+git pull
+
+git checkout -b NAME_OF_BRANCH
 
