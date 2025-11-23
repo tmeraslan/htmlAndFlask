@@ -21,8 +21,10 @@ def driver():
     """יוצר דפדפן Chrome (headless) לבדיקה וסוגר אותו בסיום."""
     options = webdriver.ChromeOptions()
 
-    # ב-CI צריך headless. מקומית אפשר להוריד את השורה אם רוצים לראות את הדפדפן.
-    options.add_argument("--headless=new")
+    # options.add_argument("--headless=new")
+    if os.getenv("GITHUB_ACTIONS") == "true":
+     options.add_argument("--headless=new")
+
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
