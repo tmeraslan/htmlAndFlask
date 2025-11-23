@@ -16,7 +16,7 @@ def test_status_ok_integration():
     data = resp.json()
     assert data.get("status") == "ok"
 
-
+@pytest.mark.integration
 def test_bmi_normal_weight_integration():
     
     url = f"{BASE_URL}/bmi"

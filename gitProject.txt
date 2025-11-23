@@ -18,3 +18,12 @@ git pull
 
 git checkout -b NAME_OF_BRANCH
 
+
+// העלאת הקבצים מ branch אחר
+
+git add .
+git commit -m "Add new files and updates"
+
+git push -u origin feature/my-branch
+
+
