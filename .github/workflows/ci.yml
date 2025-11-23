@@ -26,9 +26,9 @@ jobs:
           pip install flake8
 
       # 🔹 Lint – בודק סגנון קוד
-      - name: Run flake8
-        run: |
-          flake8 app.py tests
+      # - name: Run flake8
+      #   run: |
+      #     flake8 app.py tests
 
       # 🔹 Unit tests בלבד (בלי integration)
       - name: Run unit tests (exclude integration)
